@@ -34,7 +34,8 @@ namespace HeboTech.ATLib.Parsers
         public event EventHandler<UnsolicitedEventArgs> UnsolicitedEvent;
 
         private bool debugEnabled;
-        private Action<string> debugAction;
+        private Action<string> debugInAction;
+        private Action<string> debugOutAction;
 
         private bool isDisposed;
         private IAtReader atReader;
@@ -72,16 +73,18 @@ namespace HeboTech.ATLib.Parsers
             return debugEnabled;
         }
 
-        public void EnableDebug(Action<string> debugAction)
+        public void EnableDebug(Action<string> onInpit, Action<string> onOutPut)
         {
-            this.debugAction = debugAction ?? throw new ArgumentNullException(nameof(debugAction));
+            this.debugInAction = onInpit ?? throw new ArgumentNullException(nameof(onInpit));
+            this.debugOutAction = onOutPut ?? throw new ArgumentNullException(nameof(onOutPut));
             debugEnabled = true;
         }
 
         public void DisableDebug()
         {
             debugEnabled = false;
-            debugAction = default;
+            debugInAction = default;
+            debugOutAction = default;
         }
 
         /// <summary>
@@ -157,7 +160,7 @@ namespace HeboTech.ATLib.Parsers
                 this.currentResponse = new AtResponse();
 
                 if (debugEnabled)
-                    debugAction($"Out: {command.Command}");
+                    debugInAction(command.Command);
                 await atWriter.WriteLineAsync(command.Command);
 
                 if (!await waitingForCommandResponse.WaitAsync(command.Timeout, cancellationToken))
@@ -181,7 +184,7 @@ namespace HeboTech.ATLib.Parsers
                 {
                     line1 = await atReader.ReadAsync(cancellationToken);
                     if (debugEnabled)
-                        debugAction($"In: {line1}");
+                        debugOutAction(line1);
                 }
                 catch (OperationCanceledException)
                 {
@@ -198,7 +201,7 @@ namespace HeboTech.ATLib.Parsers
                     {
                         line2 = await atReader.ReadAsync(cancellationToken);
                         if (debugEnabled)
-                            debugAction($"In: {line2}");
+                            debugOutAction(line2);
                     }
                     catch (OperationCanceledException)
                     {
@@ -234,7 +237,7 @@ namespace HeboTech.ATLib.Parsers
                 // See eg. TS 27.005 4.3
                 // Commands like AT+CMGS have a "> " prompt
                 if (debugEnabled)
-                    debugAction($"Out: {currentCommand.SmsPdu}");
+                    debugInAction(currentCommand.SmsPdu);
                 atWriter.WriteSmsPduAndCtrlZAsync(currentCommand.SmsPdu);
                 currentCommand.SmsPdu = null;
             }
