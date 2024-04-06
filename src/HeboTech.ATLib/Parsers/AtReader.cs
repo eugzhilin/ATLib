@@ -136,6 +136,7 @@ namespace HeboTech.ATLib.Parsers
                 {
                     // TODO: dispose managed state (managed objects)
                     cancellationTokenSource.Cancel();
+                    pipe.CompleteAsync();
                     reader?.Wait();
                     reader.Dispose();
                     reader = null;

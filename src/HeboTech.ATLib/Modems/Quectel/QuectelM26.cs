@@ -6,6 +6,7 @@ using HeboTech.ATLib.Parsers;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using UnitsNet;
 
 namespace HeboTech.ATLib.Modems.Quectel
 {
@@ -40,6 +41,17 @@ namespace HeboTech.ATLib.Modems.Quectel
             return ModemResponse.HasResultError<Imei>(error);
         }
 
+        public virtual async Task<ModemResponse> DeleteReadSmsAsync()
+        {
+            AtResponse response = await channel.SendCommand($"AT+CMGD=1,1");
+
+            if (response.Success)
+                return ModemResponse.IsSuccess();
+
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasError(error);
+        }
+
         public override async Task<bool> SetRequiredSettingsBeforePinAsync()
         {
             ModemResponse echo = await DisableEchoAsync();
@@ -69,6 +81,24 @@ namespace HeboTech.ATLib.Modems.Quectel
 
             AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
             return ModemResponse.HasError(error);
+        }
+
+
+        public async Task<ModemResponse<string>> getOwnNumber()
+        {
+            AtResponse response = await channel.SendSingleLineCommandAsync("AT+CNUM","+CNUM");
+           
+            if (response.Success)
+            {
+                string line = response.Intermediates.First();
+                var match = Regex.Match(line, @"\+CNUM:\s.*(?<number>\d{11}).*");
+                if (match.Success)
+                {
+                    return ModemResponse.IsResultSuccess(match.Groups["number"].Value);
+                }
+            }
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasResultError<string>(error);
         }
     }
 }

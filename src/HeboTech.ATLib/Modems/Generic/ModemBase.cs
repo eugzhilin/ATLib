@@ -434,6 +434,9 @@ namespace HeboTech.ATLib.Modems.Generic
             AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
             return ModemResponse.HasError(error);
         }
+
+
+
         #endregion
 
         #region _3GPP_TS_27_007
@@ -472,6 +475,28 @@ namespace HeboTech.ATLib.Modems.Generic
         public virtual async Task<ModemResponse> EnterSimPinAsync(PersonalIdentificationNumber pin)
         {
             AtResponse response = await channel.SendCommand($"AT+CPIN={pin}");
+
+            if (response.Success)
+                return ModemResponse.IsSuccess();
+
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasResultError<SimStatus>(error);
+        }
+
+        public virtual async Task<ModemResponse> SetActivePhoneBookEntryAsync(PhoneBookEntry selector)
+        {
+            AtResponse response = await channel.SendCommand($"AT+CPBS =\"{selector}\"");
+
+            if (response.Success)
+                return ModemResponse.IsSuccess();
+
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasResultError<SimStatus>(error);
+        }
+
+        public virtual async Task<ModemResponse> WriteToActivePhonebook(int index,String number)
+        {
+            AtResponse response = await channel.SendCommand($"AT + CPBW ={index},\"{number}\"");
 
             if (response.Success)
                 return ModemResponse.IsSuccess();
