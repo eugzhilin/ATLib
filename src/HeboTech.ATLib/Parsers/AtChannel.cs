@@ -168,6 +168,10 @@ namespace HeboTech.ATLib.Parsers
 
                 return currentResponse;
             }
+            catch(Exception ex)
+            {
+                return new AtResponse() { Success = false, FinalResponse = "", Intermediates = new System.Collections.Generic.List<string>() };
+            }
             finally
             {
                 this.currentCommand = default;

@@ -3,6 +3,8 @@ using HeboTech.ATLib.DTOs;
 using HeboTech.ATLib.Extensions;
 using HeboTech.ATLib.Modems.SIMCOM;
 using HeboTech.ATLib.Parsers;
+using System;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -43,7 +45,7 @@ namespace HeboTech.ATLib.Modems.Quectel
 
         public virtual async Task<ModemResponse> DeleteReadSmsAsync()
         {
-            AtResponse response = await channel.SendCommand($"AT+CMGD=1,1");
+            AtResponse response = await channel.SendCommand($"AT+QMGDA=1");
 
             if (response.Success)
                 return ModemResponse.IsSuccess();
@@ -63,6 +65,7 @@ namespace HeboTech.ATLib.Modems.Quectel
         {
             ModemResponse currentCharacterSet = await SetCharacterSetAsync(CharacterSet.UCS2);
             ModemResponse smsMessageFormat = await SetSmsMessageFormatAsync(SmsTextFormat.PDU);
+            _=await SetNewSmsIndicationAsync(2, 1, 0, 0, 0);
             return currentCharacterSet.Success && smsMessageFormat.Success;
         }
 
@@ -86,19 +89,30 @@ namespace HeboTech.ATLib.Modems.Quectel
 
         public async Task<ModemResponse<string>> getOwnNumber()
         {
-            AtResponse response = await channel.SendSingleLineCommandAsync("AT+CNUM","+CNUM");
-           
-            if (response.Success)
+            try
             {
-                string line = response.Intermediates.First();
-                var match = Regex.Match(line, @"\+CNUM:\s.*(?<number>\d{11}).*");
-                if (match.Success)
+                AtResponse response = await channel.SendSingleLineCommandAsync("AT+CNUM", "+CNUM");
+
+                if (response.Success)
                 {
-                    return ModemResponse.IsResultSuccess(match.Groups["number"].Value);
+                    string line = response.Intermediates.First();
+                    var match = Regex.Match(line, @"\+CNUM:\s.*(?<number>\d{11}).*");
+                    if (match.Success)
+                    {
+                        return ModemResponse.IsResultSuccess(match.Groups["number"].Value);
+                    }
                 }
+                AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+                return ModemResponse.HasResultError<string>(error);
             }
-            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
-            return ModemResponse.HasResultError<string>(error);
+            catch (InvalidResponseException ex)
+            {
+                return ModemResponse.IsResultSuccess("");
+            }
+            catch (Exception ex)
+            {
+                 return ModemResponse.HasResultError<string>(new Error(99, ex.Message));
+            }
         }
     }
 }
