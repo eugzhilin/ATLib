@@ -1,9 +1,15 @@
-﻿using System.Text.RegularExpressions;
+﻿using HeboTech.ATLib.Parsers;
+using System.Text.RegularExpressions;
 
 namespace HeboTech.ATLib.Events
 {
     public class UssdResponseEventArgs
     {
+
+        public static UssdResponseEventArgs Empty()
+        {
+            return new UssdResponseEventArgs(0, string.Empty, 0);
+        }
         public UssdResponseEventArgs(int status, string response, int codingScheme)
         {
             Status = status;

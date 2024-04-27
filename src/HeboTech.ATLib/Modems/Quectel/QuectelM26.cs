@@ -1,5 +1,6 @@
 ﻿using HeboTech.ATLib.CodingSchemes;
 using HeboTech.ATLib.DTOs;
+using HeboTech.ATLib.Events;
 using HeboTech.ATLib.Extensions;
 using HeboTech.ATLib.Modems.SIMCOM;
 using HeboTech.ATLib.Parsers;
@@ -7,6 +8,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using UnitsNet;
 
@@ -69,7 +71,7 @@ namespace HeboTech.ATLib.Modems.Quectel
             return currentCharacterSet.Success && smsMessageFormat.Success;
         }
 
-        public override Task<ModemResponse> SendUssdAsync(string code, int codingScheme = 15)
+        public override Task<ModemResponse<UssdResponseEventArgs>> SendUssdAsync(string code, int codingScheme = 15)
         {
             return base.SendUssdAsync(EncodePDU.RawEncode(code), codingScheme);
         }
@@ -96,7 +98,7 @@ namespace HeboTech.ATLib.Modems.Quectel
                 if (response.Success)
                 {
                     string line = response.Intermediates.First();
-                    var match = Regex.Match(line, @"\+CNUM:\s.*(?<number>\d{11}).*");
+                    var match = Regex.Match(line, @"\+CNUM:\s.*""\+?(?<number>\d+)"".*");
                     if (match.Success)
                     {
                         return ModemResponse.IsResultSuccess(match.Groups["number"].Value);
@@ -114,5 +116,98 @@ namespace HeboTech.ATLib.Modems.Quectel
                  return ModemResponse.HasResultError<string>(new Error(99, ex.Message));
             }
         }
+
+        public async Task<ModemResponse> removePin(string pin)
+        {
+            try
+            {
+                ModemResponse pinEntered = await base.EnterSimPinAsync(new PersonalIdentificationNumber(pin));
+
+                if (pinEntered?.Success ?? false)
+                {
+                    AtResponse response = await channel.SendCommand($"AT+CLCK=\"SC\",0,\"{pin}\"");
+
+                    if (response.Success)
+                    {
+                        return ModemResponse.IsSuccess(true);
+                    }
+                    AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+                    return ModemResponse.HasResultError<string>(error);
+                }
+                else {
+                    return pinEntered;
+                }
+            }
+            catch (InvalidResponseException ex)
+            {
+                return ModemResponse.IsResultSuccess("");
+            }
+            catch (Exception ex)
+            {
+                return ModemResponse.HasResultError<string>(new Error(99, ex.Message));
+            }
+        }
+
+
+        public async Task<ModemResponse<PhoneBookContent>> ReadPhoneBook(PhoneBookEntry phoneBook)
+        {
+
+            _=await SetActivePhoneBookEntryAsync(phoneBook);
+
+            AtResponse response = await channel.SendSingleLineCommandAsync("AT+CPBS?","+CPBS");
+
+            if (response.Success)
+            {
+                string line = response.Intermediates.FirstOrDefault() ?? string.Empty;
+                var match = Regex.Match(line, @"""(?<fb>\w+)"",(?<used>\d+),(?<total>\d+)");
+                if (match.Success)
+                {
+                    string used = match.Groups["used"].Value;
+                    string total = match.Groups["total"].Value;
+
+                    PhoneBookContent content=new PhoneBookContent()
+                    {
+                        Capacity=int.Parse(total),
+                        Used=int.Parse(used)
+                    };
+
+                    return ModemResponse.IsResultSuccess(content);
+                }
+            }
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasResultError<PhoneBookContent>(error);
+        }
+        public async Task<ModemResponse<PhoneBookRecord>> ReadPhoneBookRecordAsync(int index)
+        {
+            AtResponse response = await channel.SendSingleLineCommandAsync($"AT+CPBR={index}", "+CPBR");
+
+            if (response.Success)
+            {
+                if(response is AtResponseEmpty)
+                {
+                    return ModemResponse.IsResultSuccess(new PhoneBookRecord() { Index = index });
+                }
+                string line = response.Intermediates.FirstOrDefault() ?? string.Empty;
+                var match = Regex.Match(line, @"(?<index>\d+),""(?<number>[\*#\+\d]+)"",\d+,""(?<title>[\w\d]+)""");
+                if (match.Success)
+                {
+                    string number = match.Groups["number"].Value;
+                    string title = EncodePDU.RawDecode(match.Groups["title"].Value);
+                    return ModemResponse.IsResultSuccess(new PhoneBookRecord()
+                    {
+                        Index=index,
+                        Number=number,
+                        Title=title,
+                    });
+                }
+            }
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasResultError<PhoneBookRecord>(error);
+        }
     }
+
+   
+
+
+
 }

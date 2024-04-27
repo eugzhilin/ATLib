@@ -211,7 +211,7 @@ namespace HeboTech.ATLib.Modems
         /// <param name="code">The code</param>
         /// <param name="codingScheme">Cell Broadcast Data Coding Scheme</param>
         /// <returns>Command status</returns>
-        Task<ModemResponse> SendUssdAsync(string code, int codingScheme = 15);
+        Task<ModemResponse<UssdResponseEventArgs>> SendUssdAsync(string code, int codingScheme = 15);
 
         /// <summary>
         /// Sets the current character set. Get available character sets to see the supported sets

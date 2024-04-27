@@ -10,4 +10,18 @@ namespace HeboTech.ATLib.DTOs
         SM
 
     }
+
+    public class PhoneBookContent
+    {
+        public int Used;
+        public int Capacity;
+    }
+
+    public class PhoneBookRecord
+    {
+
+        public int Index { get; set; }
+        public string Number { get; set; }
+        public string Title { get; set; }
+    }
 }

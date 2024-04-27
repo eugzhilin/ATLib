@@ -13,4 +13,13 @@ namespace HeboTech.ATLib.Parsers
             return $"Success: {Success}, FinalResponse: {FinalResponse}, Intermediates: {Intermediates.Count}";
         }
     }
+
+    public class AtResponseEmpty:AtResponse
+    {
+       
+        public override string ToString()
+        {
+            return $"Success: {Success}";
+        }
+    }
 }

@@ -117,7 +117,8 @@ namespace HeboTech.ATLib.Parsers
             if (response != null && response.Success && !response.Intermediates.Any())
             {
                 // Successful command must have an intermediate response
-                throw new InvalidResponseException("Did not get an intermediate response");
+               // throw new InvalidResponseException("Did not get an intermediate response");
+               return new AtResponseEmpty() { Success = true };
             }
 
             return response;

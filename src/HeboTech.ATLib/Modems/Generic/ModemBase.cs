@@ -87,6 +87,24 @@ namespace HeboTech.ATLib.Modems.Generic
             return ModemResponse.HasResultError<Imsi>(error);
         }
 
+        public virtual async Task<ModemResponse<ICcid>> GetICcidAsync()
+        {
+            AtResponse response = await channel.SendSingleLineCommandAsync("AT+CCID", string.Empty);
+
+            if (response.Success)
+            {
+                string line = response.Intermediates.FirstOrDefault() ?? string.Empty;
+                var match = Regex.Match(line, @"(?<ccid>\d+)");
+                if (match.Success)
+                {
+                    string imsi = match.Groups["ccid"].Value;
+                    return ModemResponse.IsResultSuccess(new ICcid(imsi));
+                }
+            }
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasResultError<ICcid>(error);
+        }
+
         public virtual async Task<ModemResponse> AnswerIncomingCallAsync()
         {
             AtResponse response = await channel.SendCommand("ATA");
@@ -494,7 +512,7 @@ namespace HeboTech.ATLib.Modems.Generic
             return ModemResponse.HasResultError<SimStatus>(error);
         }
 
-        public virtual async Task<ModemResponse> WriteToActivePhonebook(int index,String number)
+        public virtual async Task<ModemResponse> WriteToActivePhonebook(int index, String number)
         {
             AtResponse response = await channel.SendCommand($"AT + CPBW ={index},\"{number}\"");
 
@@ -594,15 +612,68 @@ namespace HeboTech.ATLib.Modems.Generic
             return ModemResponse.HasResultError<DateTimeOffset>(error);
         }
 
-        public virtual async Task<ModemResponse> SendUssdAsync(string code, int codingScheme = 15)
+        public virtual async Task<ModemResponse<OperatorEntry>> GetCurrentOperator()
         {
-            AtResponse response = await channel.SendCommand($"AT+CUSD=1,\"{code}\",{codingScheme}");
+
+            AtResponse response = await channel.SendSingleLineCommandAsync($"AT+COPS?", "+COPS");
 
             if (response.Success)
-                return ModemResponse.IsSuccess();
+            {
+                if (response.Intermediates.Count > 0)
+                {
+                    try
+                    {
+                        var matched = Regex.Match(response.Intermediates[0], @"^\+COPS:\s(?<mode>\d+),(?<format>\d+),\""(?<oper>.+)\""$");
+                        if (matched.Success)
+                        {
+                            OperatorEntry entry = new OperatorEntry()
+                            {
+                                //Mode = (OperatorMode)int.Parse(matched.Groups["mode"].Value),
+                               // Format = (OperatorFormat)int.Parse(matched.Groups["format"].Value),
+                                Operator = matched.Groups["oper"].Value
+                            };
+                            return ModemResponse.IsResultSuccess(entry);
+                        }
+                        return ModemResponse.HasResultError<OperatorEntry>(new Error(99, "No operator selected"));
+                    }
+                    catch (Exception e)
+                    {
+                        return ModemResponse.IsResultSuccess<OperatorEntry>(new OperatorEntry { Format = OperatorFormat.Numeric, Mode = OperatorMode.Unknown, Operator = String.Empty });
+                    }
+
+                }
+                return ModemResponse.IsResultSuccess<OperatorEntry>(new OperatorEntry { Format=OperatorFormat.Numeric,Mode=OperatorMode.Unknown,Operator=String.Empty});
+            }
 
             AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
-            return ModemResponse.HasError(error);
+            return ModemResponse.HasResultError<OperatorEntry>(error);
+        }
+
+        public virtual async Task<ModemResponse<UssdResponseEventArgs>> SendUssdAsync(string code, int codingScheme = 15)
+        {
+            
+            AtResponse response = await channel.SendSingleLineCommandAsync($"AT+CUSD=1,\"{code}\",{codingScheme}", "+CUSD");
+
+            if (response.Success)
+            {
+                if (response.Intermediates.Count > 0)
+                {
+                    try
+                    {
+                        var ussdResponse = UssdResponseEventArgs.CreateFromResponse(response.Intermediates[0]);
+                        return ModemResponse.IsResultSuccess<UssdResponseEventArgs>(ussdResponse);
+                    }
+                    catch (Exception e)
+                    {
+                        return ModemResponse.HasResultError<UssdResponseEventArgs>(new Error(99, e.Message));
+                    }
+
+                }
+                return ModemResponse.IsResultSuccess<UssdResponseEventArgs>(UssdResponseEventArgs.Empty());
+            }
+
+                AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+                return ModemResponse.HasResultError<UssdResponseEventArgs>(error);
         }
         #endregion
 
