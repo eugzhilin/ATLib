@@ -101,6 +101,21 @@ namespace HeboTech.ATLib.Modems.Generic
                     return ModemResponse.IsResultSuccess(new ICcid(imsi));
                 }
             }
+            else
+            {
+                response = await channel.SendSingleLineCommandAsync("AT+QCCID", string.Empty);
+
+                if (response.Success)
+                {
+                    string line = response.Intermediates.FirstOrDefault() ?? string.Empty;
+                    var match = Regex.Match(line, @"(?<ccid>\d+)");
+                    if (match.Success)
+                    {
+                        string imsi = match.Groups["ccid"].Value;
+                        return ModemResponse.IsResultSuccess(new ICcid(imsi));
+                    }
+                }
+            }
             AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
             return ModemResponse.HasResultError<ICcid>(error);
         }
