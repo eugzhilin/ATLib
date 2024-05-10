@@ -99,7 +99,7 @@ namespace HeboTech.ATLib.Modems.Generic
                 {
                     string imsi = match.Groups["ccid"].Value;
                     return ModemResponse.IsResultSuccess(new ICcid(imsi));
-                }
+                 }
             }
             else
             {
@@ -507,7 +507,7 @@ namespace HeboTech.ATLib.Modems.Generic
 
         public virtual async Task<ModemResponse> EnterSimPinAsync(PersonalIdentificationNumber pin)
         {
-            AtResponse response = await channel.SendCommand($"AT+CPIN={pin}");
+            AtResponse response = await channel.SendCommand($"AT+CPIN=\"{pin}\"");
 
             if (response.Success)
                 return ModemResponse.IsSuccess();

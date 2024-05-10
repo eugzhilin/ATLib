@@ -26,7 +26,6 @@ namespace HeboTech.ATLib.Modems.Quectel
             : base(channel)
         {
         }
-
         public async Task<ModemResponse<Imei>> GetImeiAsync()
         {
             AtResponse response = await channel.SendSingleLineCommandAsync("AT+GSN", string.Empty);
@@ -60,14 +59,16 @@ namespace HeboTech.ATLib.Modems.Quectel
         {
             ModemResponse echo = await DisableEchoAsync();
             ModemResponse errorFormat = await SetErrorFormatAsync(1);
+            ModemResponse detect = await TurnOffSimDetect();
             return echo.Success && errorFormat.Success;
+
         }
 
         public override async Task<bool> SetRequiredSettingsAfterPinAsync()
         {
             ModemResponse currentCharacterSet = await SetCharacterSetAsync(CharacterSet.UCS2);
             ModemResponse smsMessageFormat = await SetSmsMessageFormatAsync(SmsTextFormat.PDU);
-            _=await SetNewSmsIndicationAsync(2, 1, 0, 0, 0);
+            _ = await SetNewSmsIndicationAsync(1, 1, 0, 0, 0);
             return currentCharacterSet.Success && smsMessageFormat.Success;
         }
 
@@ -87,7 +88,16 @@ namespace HeboTech.ATLib.Modems.Quectel
             AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
             return ModemResponse.HasError(error);
         }
+        public async virtual Task<ModemResponse> TurnOffSimDetect()
+        {
+            AtResponse response = await channel.SendCommand("AT+QSIMSTAT=0");
 
+            if (response.Success)
+                return ModemResponse.IsSuccess();
+
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasError(error);
+        }
 
         public async Task<ModemResponse<string>> getOwnNumber()
         {
@@ -97,11 +107,18 @@ namespace HeboTech.ATLib.Modems.Quectel
 
                 if (response.Success)
                 {
-                    string line = response.Intermediates.First();
-                    var match = Regex.Match(line, @"\+CNUM:\s.*""\+?(?<number>\d+)"".*");
-                    if (match.Success)
+                    if (response.Intermediates.Count > 0)
                     {
-                        return ModemResponse.IsResultSuccess(match.Groups["number"].Value);
+                        string line = response.Intermediates.First();
+                        var match = Regex.Match(line, @"\+CNUM:\s.*""\+?(?<number>\d+)"".*");
+                        if (match.Success)
+                        {
+                            return ModemResponse.IsResultSuccess(match.Groups["number"].Value);
+                        }
+                    }
+                    else
+                    {
+                        return ModemResponse.IsResultSuccess("");
                     }
                 }
                 AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
@@ -113,7 +130,7 @@ namespace HeboTech.ATLib.Modems.Quectel
             }
             catch (Exception ex)
             {
-                 return ModemResponse.HasResultError<string>(new Error(99, ex.Message));
+                return ModemResponse.HasResultError<string>(new Error(99, ex.Message));
             }
         }
 
@@ -134,7 +151,8 @@ namespace HeboTech.ATLib.Modems.Quectel
                     AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
                     return ModemResponse.HasResultError<string>(error);
                 }
-                else {
+                else
+                {
                     return pinEntered;
                 }
             }
@@ -152,9 +170,9 @@ namespace HeboTech.ATLib.Modems.Quectel
         public async Task<ModemResponse<PhoneBookContent>> ReadPhoneBook(PhoneBookEntry phoneBook)
         {
 
-            _=await SetActivePhoneBookEntryAsync(phoneBook);
+            _ = await SetActivePhoneBookEntryAsync(phoneBook);
 
-            AtResponse response = await channel.SendSingleLineCommandAsync("AT+CPBS?","+CPBS");
+            AtResponse response = await channel.SendSingleLineCommandAsync("AT+CPBS?", "+CPBS");
 
             if (response.Success)
             {
@@ -165,10 +183,10 @@ namespace HeboTech.ATLib.Modems.Quectel
                     string used = match.Groups["used"].Value;
                     string total = match.Groups["total"].Value;
 
-                    PhoneBookContent content=new PhoneBookContent()
+                    PhoneBookContent content = new PhoneBookContent()
                     {
-                        Capacity=int.Parse(total),
-                        Used=int.Parse(used)
+                        Capacity = int.Parse(total),
+                        Used = int.Parse(used)
                     };
 
                     return ModemResponse.IsResultSuccess(content);
@@ -183,7 +201,7 @@ namespace HeboTech.ATLib.Modems.Quectel
 
             if (response.Success)
             {
-                if(response is AtResponseEmpty)
+                if (response is AtResponseEmpty)
                 {
                     return ModemResponse.IsResultSuccess(new PhoneBookRecord() { Index = index });
                 }
@@ -195,15 +213,16 @@ namespace HeboTech.ATLib.Modems.Quectel
                     string title = EncodePDU.RawDecode(match.Groups["title"].Value);
                     return ModemResponse.IsResultSuccess(new PhoneBookRecord()
                     {
-                        Index=index,
-                        Number=number,
-                        Title=title,
+                        Index = index,
+                        Number = number,
+                        Title = title,
                     });
                 }
             }
             AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
             return ModemResponse.HasResultError<PhoneBookRecord>(error);
         }
+
     }
 
    
