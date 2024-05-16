@@ -68,7 +68,7 @@ namespace HeboTech.ATLib.Modems.Quectel
         {
             ModemResponse currentCharacterSet = await SetCharacterSetAsync(CharacterSet.UCS2);
             ModemResponse smsMessageFormat = await SetSmsMessageFormatAsync(SmsTextFormat.PDU);
-            _ = await SetNewSmsIndicationAsync(1, 1, 0, 0, 0);
+            _ = await SetNewSmsIndicationAsync(0,0, 0, 0, 0);
             return currentCharacterSet.Success && smsMessageFormat.Success;
         }
 
@@ -165,8 +165,6 @@ namespace HeboTech.ATLib.Modems.Quectel
                 return ModemResponse.HasResultError<string>(new Error(99, ex.Message));
             }
         }
-
-
         public async Task<ModemResponse<PhoneBookContent>> ReadPhoneBook(PhoneBookEntry phoneBook)
         {
 
@@ -221,6 +219,18 @@ namespace HeboTech.ATLib.Modems.Quectel
             }
             AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
             return ModemResponse.HasResultError<PhoneBookRecord>(error);
+        }
+
+        public async Task<ModemResponse> OnOffModem(bool on)
+        {
+            AtResponse response = await channel.SendCommand("AT+CFUN="+(on?"1":"0"));
+
+            if (response.Success)
+                return ModemResponse.IsSuccess();
+
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasError(error);
+
         }
 
     }

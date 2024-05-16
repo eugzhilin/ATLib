@@ -68,7 +68,7 @@ namespace HeboTech.ATLib.Modems.SIMCOM
                 {
                     string metaDataLine = response.Intermediates[i];
                     string messageLine = response.Intermediates[i + 1];
-                    var match = Regex.Match(metaDataLine, @"\+CMGL:\s(?<index>\d+),(?<status>\d+),"""",(?<length>\d+)");
+                    var match = Regex.Match(metaDataLine, @"\+CMGL:\s(?<index>\d+),(?<status>\d+),""?""?,(?<length>\d+)");
                     if (match.Success)
                     {
                         int index = int.Parse(match.Groups["index"].Value);
