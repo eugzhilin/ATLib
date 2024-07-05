@@ -110,7 +110,7 @@ namespace HeboTech.ATLib.Modems.Quectel
                     if (response.Intermediates.Count > 0)
                     {
                         string line = response.Intermediates.First();
-                        var match = Regex.Match(line, @"\+CNUM:\s.*""\+?(?<number>\d+)"".*");
+                        var match = Regex.Match(line, @"\+CNUM:\s"".*"",""\+?(?<number>\d{4,})"",.*");
                         if (match.Success)
                         {
                             return ModemResponse.IsResultSuccess(match.Groups["number"].Value);
@@ -130,7 +130,11 @@ namespace HeboTech.ATLib.Modems.Quectel
             }
             catch (Exception ex)
             {
-                return ModemResponse.HasResultError<string>(new Error(99, ex.Message));
+                if(ex.InnerException != null)
+                {
+                    ex=ex.InnerException;
+                }
+                return ModemResponse.HasResultError<string>(new Error(99, ex.StackTrace));
             }
         }
 

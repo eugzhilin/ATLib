@@ -89,7 +89,7 @@ namespace HeboTech.ATLib.Modems.Generic
 
         public virtual async Task<ModemResponse<ICcid>> GetICcidAsync()
         {
-            AtResponse response = await channel.SendSingleLineCommandAsync("AT+CCID", string.Empty);
+            AtResponse response = await channel.SendSingleLineCommandAsync("AT+QCCID", string.Empty);
 
             if (response.Success)
             {
@@ -103,7 +103,7 @@ namespace HeboTech.ATLib.Modems.Generic
             }
             else
             {
-                response = await channel.SendSingleLineCommandAsync("AT+QCCID", string.Empty);
+                response = await channel.SendSingleLineCommandAsync("AT+CCID", string.Empty);
 
                 if (response.Success)
                 {
