@@ -208,18 +208,39 @@ namespace HeboTech.ATLib.Modems.Quectel
                     return ModemResponse.IsResultSuccess(new PhoneBookRecord() { Index = index });
                 }
                 string line = response.Intermediates.FirstOrDefault() ?? string.Empty;
-                var match = Regex.Match(line, @"(?<index>\d+),""(?<number>[\*#\+\d]+)"",\d+,""(?<title>[\w\d]+)""");
-                if (match.Success)
+                if (line != string.Empty)
                 {
-                    string number = match.Groups["number"].Value;
-                    string title = EncodePDU.RawDecode(match.Groups["title"].Value);
-                    return ModemResponse.IsResultSuccess(new PhoneBookRecord()
+                    var match = Regex.Match(line, @"(?<index>\d+),""(?<number>[\*#\+\d]+)"",\d+,(""(?<title>.+)"")?");
+                    if (match.Success)
                     {
-                        Index = index,
-                        Number = number,
-                        Title = title,
-                    });
+                        string number = match.Groups["number"].Value;
+                        var pe=new PhoneBookRecord()
+                        {
+                            Index = index,
+                            Number = number,
+                            Title = "noa"
+                        };
+                        var title = match.Groups["title"].Value;
+                        try
+                        {
+
+                            pe.Title = EncodePDU.RawDecode(title);
+                             
+                        }
+                        catch (Exception ex)
+                        {
+                            pe.Title = title;
+                        }
+                        return ModemResponse.IsResultSuccess(pe);
+
+                    }
                 }
+                return ModemResponse.IsResultSuccess(new PhoneBookRecord()
+                {
+                    Index = index,
+                    Number = "",
+                    Title = ""
+                });
             }
             AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
             return ModemResponse.HasResultError<PhoneBookRecord>(error);
