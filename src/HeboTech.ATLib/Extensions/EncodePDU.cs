@@ -330,14 +330,19 @@ namespace HeboTech.ATLib.Extensions
 
         public static String RawDecode(string input)
         {
+            try
+            {
+                char[] buf = new char[input.Length / 4];
 
-            char[] buf = new char[input.Length / 4];
 
+                for (int i = 0; i < buf.Length; i++)
+                    buf[i] = (char)Convert.ToUInt32(input.Substring(i * 4, 4), 16);
 
-            for (int i = 0; i < buf.Length; i++)
-                buf[i] = (char)Convert.ToUInt32(input.Substring(i * 4, 4), 16);
-
-            return new string(buf);
+                return new string(buf);
+            }
+            catch (FormatException) {
+                return input;
+            }
 
         }
 

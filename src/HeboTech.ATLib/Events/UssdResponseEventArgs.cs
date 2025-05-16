@@ -33,5 +33,17 @@ namespace HeboTech.ATLib.Events
             }
             return default;
         }
+        public static UssdResponseEventArgs CreateFromNoResponse(string response)
+        {
+            var match = Regex.Match(response, @"\+CUSD:\s(?<message>.*)?");
+            if (match.Success)
+            {
+                int status = 0;
+                string message = match.Groups["message"].Value;
+                int codingScheme =0;
+                return new UssdResponseEventArgs(status, message, codingScheme);
+            }
+            return default;
+        }
     }
 }

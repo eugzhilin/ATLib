@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -686,9 +687,17 @@ namespace HeboTech.ATLib.Modems.Generic
                 }
                 return ModemResponse.IsResultSuccess<UssdResponseEventArgs>(UssdResponseEventArgs.Empty());
             }
-
+            if (response.Intermediates.Count > 0)
+            {
+                AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+                UssdResponseEventArgs result = UssdResponseEventArgs.CreateFromNoResponse(response.Intermediates[0]);
+                return new ModemResponse<UssdResponseEventArgs>(false, error, result);
+            }
+            else
+            {
                 AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
                 return ModemResponse.HasResultError<UssdResponseEventArgs>(error);
+            }
         }
         #endregion
 

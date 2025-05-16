@@ -76,7 +76,10 @@ namespace HeboTech.ATLib.Modems.Quectel
         {
             return base.SendUssdAsync(EncodePDU.RawEncode(code), codingScheme);
         }
-
+        public Task<ModemResponse<UssdResponseEventArgs>> SendUssdAsyncRaw(string code, int codingScheme = 15)
+        {
+            return base.SendUssdAsync(code, codingScheme);
+        }
 
         public async virtual Task<ModemResponse> SendRawAsync(string commandText)
         {
