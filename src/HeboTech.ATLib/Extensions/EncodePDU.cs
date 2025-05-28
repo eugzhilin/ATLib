@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HeboTech.ATLib.Events;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -342,6 +343,28 @@ namespace HeboTech.ATLib.Extensions
             }
             catch (FormatException) {
                 return input;
+            }
+
+        }
+
+        public static String RawDecode(UssdResponseEventArgs  input)
+        {
+            try
+            {
+                if (input.CodingScheme==15) // UCS2 encoding
+                {
+                    return input.Response;
+                }
+                else
+                {
+                    return RawDecode(input.Response);
+                }
+
+                   
+            }
+            catch (FormatException)
+            {
+                return $"{input.CodingScheme} {input.Response}";
             }
 
         }
