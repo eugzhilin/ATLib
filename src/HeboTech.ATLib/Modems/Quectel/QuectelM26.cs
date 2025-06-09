@@ -261,9 +261,51 @@ namespace HeboTech.ATLib.Modems.Quectel
 
         }
 
+        public virtual async Task<ModemResponse<SimRegistrationStatus>> GetRegistrationStatus()
+        {
+
+            AtResponse response = await channel.SendSingleLineCommandAsync($"AT+CREG?", "+CREG");
+
+            if (response.Success)
+            {
+                if (response.Intermediates.Count > 0)
+                {
+                    try
+                    {
+                        var matched = Regex.Match(response.Intermediates[0], @"^\+CREG:\s\d,(?<regstatus>\d)");
+                        if (matched.Success)
+                        {
+                            string cstatResult = matched.Groups["regstatus"].Value;
+                            return cstatResult switch
+                            {
+                                "0" => ModemResponse.IsResultSuccess(SimRegistrationStatus.NOT_REGISTERED),
+                                "1" => ModemResponse.IsResultSuccess(SimRegistrationStatus.REGISTERED_HOME),
+                                "2" => ModemResponse.IsResultSuccess(SimRegistrationStatus.IN_REGISTRATION),
+                                "3" => ModemResponse.IsResultSuccess(SimRegistrationStatus.REGISTRATION_DENIED),
+                                "4" => ModemResponse.IsResultSuccess(SimRegistrationStatus.UNKNOWN),
+                                "5" => ModemResponse.IsResultSuccess(SimRegistrationStatus.REGISTERED_ROAMING),
+                                _ => ModemResponse.IsResultSuccess(SimRegistrationStatus.UNKNOWN)
+                            };
+                        }
+                        return ModemResponse.HasResultError<SimRegistrationStatus>(new Error(99, "Not registered"));
+                    }
+                    catch (Exception e)
+                    {
+                        return ModemResponse.HasResultError<SimRegistrationStatus>(new Error(99, e.Message));
+                    }
+
+                }
+                return ModemResponse.HasResultError<SimRegistrationStatus>(new Error(99,"No response"));
+            }
+
+            AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+            return ModemResponse.HasResultError<SimRegistrationStatus>(error);
+        }
+
+
     }
 
-   
+
 
 
 
