@@ -157,17 +157,23 @@ namespace HeboTech.ATLib.Parsers
         {
             try
             {
-                this.currentCommand = command;
-                this.currentResponse = new AtResponse();
+                if (!isDisposed) { 
+                    this.currentCommand = command;
+                    this.currentResponse = new AtResponse();
 
-                if (debugEnabled)
-                    debugInAction(command.Command);
-                await atWriter.WriteLineAsync(command.Command);
+                    if (debugEnabled)
+                        debugInAction(command.Command);
+                    await atWriter.WriteLineAsync(command.Command);
 
-                if (!await waitingForCommandResponse.WaitAsync(command.Timeout, cancellationToken))
-                    throw new TimeoutException("Timed out while waiting for command response");
+                    if (!await waitingForCommandResponse.WaitAsync(command.Timeout, cancellationToken))
+                        throw new TimeoutException("Timed out while waiting for command response");
 
-                return currentResponse;
+                    return currentResponse;
+                }
+                else
+                {
+                    return new AtResponse() { Success = false, FinalResponse = "Disposed", Intermediates = new System.Collections.Generic.List<string>() };
+                }
             }
             catch(Exception ex)
             {
