@@ -18,6 +18,7 @@
 		<PackageProjectUrl>https://github.com/hbjorgo/ATLib</PackageProjectUrl>
 		<PackageReleaseNotes>https://github.com/hbjorgo/ATLib/releases</PackageReleaseNotes>
 		<UserSecretsId>b8328b1a-795d-4e26-9238-43eee2160ffc</UserSecretsId>
+		<Platforms>AnyCPU;x64;x86</Platforms>
 	</PropertyGroup>
 
 	<ItemGroup>
