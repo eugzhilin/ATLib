@@ -4,6 +4,7 @@ using HeboTech.ATLib.Extensions;
 using HeboTech.ATLib.Modems.Generic;
 using HeboTech.ATLib.Parsers;
 using HeboTech.ATLib.PDU;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -53,6 +54,8 @@ namespace HeboTech.ATLib.Modems.SIMCOM
             return base.SendSmsAsync(phoneNumber, message, codingScheme, false);
         }
 
+       
+
         public override async Task<ModemResponse<List<SmsWithIndex>>> ListSmssAsync(SmsStatus smsStatus)
         {
             string command = $"AT+CMGL={(int)smsStatus}";
@@ -77,18 +80,16 @@ namespace HeboTech.ATLib.Modems.SIMCOM
                         {
                             int index = int.Parse(match.Groups["index"].Value);
                             SmsStatus status = (SmsStatus)int.Parse(match.Groups["status"].Value);
-
                             // Sent when AT+CSDH=1 is set
                             int length = int.Parse(match.Groups["length"].Value);
-
                             SmsDeliver sms = SmsDeliverDecoder.Decode(messageLine.ToByteArray());
                             smss.Add(new SmsWithIndex(index, status, sms.SenderNumber, sms.Timestamp, sms.Message));
                         }
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
-                        Debug.WriteLine($"Error parsing SMS: {ex.Message}");
-                        return ModemResponse.IsResultSuccess(smss);
+                       
+                        
                     }
                 }
                 return ModemResponse.IsResultSuccess(smss);

@@ -7,6 +7,7 @@ using HeboTech.ATLib.Parsers;
 using HeboTech.ATLib.PDU;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -380,8 +381,96 @@ namespace HeboTech.ATLib.Modems.Quectel
            
         }
 
+        public async Task<ModemResponse<SmsReadResult>> ListSmssAsync(SmsStatus smsStatus)
+        {
+            string command = $"AT+CMGL={(int)smsStatus}";
+
+            AtResponse response = await channel.SendMultilineCommand(command, null);
+
+            SmsReadResult result = new SmsReadResult();
+
+
+            if (response.Success)
+            {
+                if ((response.Intermediates.Count % 2) != 0)
+                    return ModemResponse.HasResultError<SmsReadResult>(new Error(999,"Uneven intermediates"));
+
+                for (int i = 0; i < response.Intermediates.Count; i += 2)
+                {
+                    string metaDataLine = response.Intermediates[i];
+                    string messageLine = response.Intermediates[i + 1];
+                    try
+                    {
+                       
+                       
+                        var match = Regex.Match(metaDataLine, @"\+CMGL:\s(?<index>\d+),(?<status>\d+),""?""?,(?<length>\d+)");
+                        if (match.Success)
+                        {
+                            int index = int.Parse(match.Groups["index"].Value);
+                            SmsStatus status = (SmsStatus)int.Parse(match.Groups["status"].Value);
+                            // Sent when AT+CSDH=1 is set
+                            int length = int.Parse(match.Groups["length"].Value);
+                            SmsDeliver sms = SmsDeliverDecoder.Decode(messageLine.ToByteArray());
+                            result.Add(new SmsWithIndex(index, status, sms.SenderNumber, sms.Timestamp, sms.Message));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        result.AddError(new SmsUnrecogized() { Error = ex, RawCode = $"Meta:{metaDataLine} Data: {messageLine}" });
+
+                    }
+                }
+                return ModemResponse.IsResultSuccess(result);
+            }
+            else
+            {
+                AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+                return ModemResponse.HasResultError<SmsReadResult>(error);
+
+            }
+        }
+
+
 
     }
+
+    public struct SmsUnrecogized
+    {
+        public Exception Error { get; set; }
+        public string RawCode { get; set; }
+    }
+    public class SmsReadResult
+    {
+        private List<SmsUnrecogized> smsUnrecogizeds;
+
+        private List<SmsWithIndex> smss;
+
+        public SmsReadResult(List<SmsUnrecogized> smsUnrecogizeds, List<SmsWithIndex> smss)
+        {
+            this.smsUnrecogizeds = smsUnrecogizeds;
+            this.smss = smss;
+        }
+
+        public SmsReadResult()
+        {
+            this.smsUnrecogizeds = new List<SmsUnrecogized>();
+            this.smss =new List<SmsWithIndex>();
+
+        }
+
+        public List<SmsWithIndex> Smss => smss;
+        public List<SmsUnrecogized> SmsUnrecogizeds=>smsUnrecogizeds;
+
+        public void Add(SmsWithIndex sms)
+        {
+            this.smss.Add(sms);
+        }
+        public void AddError(SmsUnrecogized sms)
+        {
+            this.smsUnrecogizeds.Add(sms);
+        }
+    }
+
 }
 
 
