@@ -319,7 +319,7 @@ namespace HeboTech.ATLib.Modems.Quectel
             try
             {
                
-                    AtResponse response = await channel.SendSmsAsync($"AT+CMGS=\"{phoneNumber}\"", message, "+CMGS:", TimeSpan.FromSeconds(120));
+                    AtResponse response = await channel.SendSmsAsync($"AT+CMGS=\"{phoneNumber}\"", message, "+CMGS:");
                     if (response.Success)
                     {
                         string line = response.Intermediates.First();
