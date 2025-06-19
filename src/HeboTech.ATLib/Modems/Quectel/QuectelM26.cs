@@ -75,13 +75,13 @@ namespace HeboTech.ATLib.Modems.Quectel
             return currentCharacterSet.Success && smsMessageFormat.Success;
         }
 
-        public override Task<ModemResponse<UssdResponseEventArgs>> SendUssdAsync(string code, int codingScheme =0)
+        public override Task<ModemResponse<UssdResponseEventArgs>> SendUssdAsync(string code, int codingScheme =15)
         {
             return base.SendUssdAsync(EncodePDU.RawEncode(code), codingScheme);
         }
-        public Task<ModemResponse<UssdResponseEventArgs>> SendUssdAsyncRaw(string code, int codingScheme = 0)
+        public Task<ModemResponse<UssdResponseEventArgs>> SendUssdAsyncRaw(string code, int codingScheme = 15)
         {
-            return base.SendUssdAsync(code, codingScheme);
+            return base.SendUssdAsync(UCS2.Encode(code), codingScheme);
         }
 
         public async virtual Task<ModemResponse> SendRawAsync(string commandText)
