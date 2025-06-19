@@ -306,40 +306,7 @@ namespace HeboTech.ATLib.Modems.Quectel
         }
 
 
-        public virtual async Task<IEnumerable<ModemResponse<SmsReference>>> SendSmsAsync(PhoneNumber phoneNumber, string message, CharacterSet codingScheme, bool includeEmptySmscLength)
-        {
-            if (phoneNumber is null)
-                throw new ArgumentNullException(nameof(phoneNumber));
-            if (message is null)
-                throw new ArgumentNullException(nameof(message));
-
-            IEnumerable<string> pdus = SmsSubmitEncoder.Encode(new SmsSubmitRequest(phoneNumber, message, codingScheme) { IncludeEmptySmscLength = includeEmptySmscLength });
-            List<ModemResponse<SmsReference>> references = new List<ModemResponse<SmsReference>>();
-            foreach (string pdu in pdus)
-            {
-                string cmd1 = $"AT+CMGS={(pdu.Length) / 2}";
-                string cmd2 = pdu;
-                AtResponse response = await channel.SendSmsAsync(cmd1, cmd2, "+CMGS:", TimeSpan.FromSeconds(120));
-
-                if (response.Success)
-                {
-                    string line = response.Intermediates.First();
-                    var match = Regex.Match(line, @"\+CMGS:\s(?<mr>\d+)");
-                    if (match.Success)
-                    {
-                        int mr = int.Parse(match.Groups["mr"].Value);
-                        references.Add(ModemResponse.IsResultSuccess(new SmsReference(mr)));
-                    }
-                }
-                else
-                {
-                    if (AtErrorParsers.TryGetError(response.FinalResponse, out Error error))
-                        references.Add(ModemResponse.HasResultError<SmsReference>(error));
-                }
-            }
-            return references;
-        }
-
+      
         public virtual async Task<IEnumerable<ModemResponse<SmsReference>>> SendSmsTextAsync(string phoneNumber, string message)
         {
             if (phoneNumber is null)
@@ -349,9 +316,10 @@ namespace HeboTech.ATLib.Modems.Quectel
 
             List<ModemResponse<SmsReference>> references = new List<ModemResponse<SmsReference>>();
             var setFormat=await base.SetSmsMessageFormatAsync(SmsTextFormat.Text);
+            var setGsm7= await base.SetCharacterSetAsync(CharacterSet.Gsm7);
             try
             {
-                if (setFormat.Success)
+                if (setFormat.Success && setGsm7.Success)
                 {
 
                     AtResponse response = await channel.SendSmsAsync($"AT+CMGS=\"{phoneNumber}\"", message, "+CMGS:", TimeSpan.FromSeconds(120));
@@ -375,6 +343,7 @@ namespace HeboTech.ATLib.Modems.Quectel
             finally
             {
                 _=await base.SetSmsMessageFormatAsync(SmsTextFormat.PDU);
+                _= await base.SetCharacterSetAsync(CharacterSet.UCS2);
             }
             return references;
 
