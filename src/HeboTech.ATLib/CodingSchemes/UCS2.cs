@@ -10,7 +10,7 @@ namespace HeboTech.ATLib.CodingSchemes
     /// Encode / decode UCS2 strings
     /// Unicode 16 bits.
     /// </summary>
-    internal class UCS2
+    public class UCS2
     {
         /// <summary>
         /// Encode to UCS2
