@@ -69,7 +69,7 @@ namespace HeboTech.ATLib.Modems.Quectel
 
         public override async Task<bool> SetRequiredSettingsAfterPinAsync()
         {
-            ModemResponse currentCharacterSet = await SetCharacterSetAsync(CharacterSet.Gsm7);
+            ModemResponse currentCharacterSet = await SetCharacterSetAsync(CharacterSet.UCS2);
             ModemResponse smsMessageFormat = await SetSmsMessageFormatAsync(SmsTextFormat.PDU);
             _ = await SetNewSmsIndicationAsync(0,0, 0, 0, 0);
             return currentCharacterSet.Success && smsMessageFormat.Success;
