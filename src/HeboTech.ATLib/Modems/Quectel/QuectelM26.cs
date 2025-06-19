@@ -316,10 +316,9 @@ namespace HeboTech.ATLib.Modems.Quectel
 
             List<ModemResponse<SmsReference>> references = new List<ModemResponse<SmsReference>>();
             var setFormat=await base.SetSmsMessageFormatAsync(SmsTextFormat.Text);
-            var setGsm7= await base.SetCharacterSetAsync(CharacterSet.Gsm7);
             try
             {
-                if (setFormat.Success && setGsm7.Success)
+                if (setFormat.Success)
                 {
 
                     AtResponse response = await channel.SendSmsAsync($"AT+CMGS=\"{phoneNumber}\"", message, "+CMGS:", TimeSpan.FromSeconds(120));
@@ -342,8 +341,11 @@ namespace HeboTech.ATLib.Modems.Quectel
             }
             finally
             {
-                _=await base.SetSmsMessageFormatAsync(SmsTextFormat.PDU);
-                _= await base.SetCharacterSetAsync(CharacterSet.UCS2);
+                var setformat2 = await base.SetSmsMessageFormatAsync(SmsTextFormat.PDU);
+                if (!setFormat.Success)
+                {
+                    Debug.WriteLine($"Failed to set SMS format back to PDU after sending SMS: {setFormat.Error}");
+                }
             }
             return references;
 
