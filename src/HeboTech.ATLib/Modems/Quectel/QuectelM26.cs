@@ -318,9 +318,7 @@ namespace HeboTech.ATLib.Modems.Quectel
             var setFormat=await base.SetSmsMessageFormatAsync(SmsTextFormat.Text);
             try
             {
-                if (setFormat.Success)
-                {
-
+               
                     AtResponse response = await channel.SendSmsAsync($"AT+CMGS=\"{phoneNumber}\"", message, "+CMGS:", TimeSpan.FromSeconds(120));
                     if (response.Success)
                     {
@@ -337,15 +335,15 @@ namespace HeboTech.ATLib.Modems.Quectel
                         if (AtErrorParsers.TryGetError(response.FinalResponse, out Error error))
                             references.Add(ModemResponse.HasResultError<SmsReference>(error));
                     }
-                }
+                
+            }
+            catch(Exception ex)
+            {
+                Debug.WriteLine($"Error sending SMS: {ex.Message}");
             }
             finally
             {
-                var setformat2 = await base.SetSmsMessageFormatAsync(SmsTextFormat.PDU);
-                if (!setFormat.Success)
-                {
-                    Debug.WriteLine($"Failed to set SMS format back to PDU after sending SMS: {setFormat.Error}");
-                }
+               
             }
             return references;
 
