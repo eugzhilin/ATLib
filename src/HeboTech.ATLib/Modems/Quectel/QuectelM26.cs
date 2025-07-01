@@ -2,6 +2,7 @@
 using HeboTech.ATLib.DTOs;
 using HeboTech.ATLib.Events;
 using HeboTech.ATLib.Extensions;
+using HeboTech.ATLib.Modems.Generic;
 using HeboTech.ATLib.Modems.SIMCOM;
 using HeboTech.ATLib.Parsers;
 using HeboTech.ATLib.PDU;
@@ -63,6 +64,7 @@ namespace HeboTech.ATLib.Modems.Quectel
             ModemResponse echo = await DisableEchoAsync();
             ModemResponse errorFormat = await SetErrorFormatAsync(1);
             ModemResponse detect = await TurnOffSimDetect();
+            _= await SetPreferredMessageStorageAsync(MessageStorage.SM, MessageStorage.SM, MessageStorage.SM);
             return echo.Success && errorFormat.Success;
 
         }
@@ -342,7 +344,7 @@ namespace HeboTech.ATLib.Modems.Quectel
            
         }
 
-        public async Task<ModemResponse<SmsReadResult>> ListSmssAsync(SmsStatus smsStatus)
+        public async Task<ModemResponse<SmsReadResult>> ListSmssAsync2(SmsStatus smsStatus)
         {
             string command = $"AT+CMGL={(int)smsStatus}";
 
