@@ -4,7 +4,9 @@ using HeboTech.ATLib.Extensions;
 using HeboTech.ATLib.Modems.Generic;
 using HeboTech.ATLib.Parsers;
 using HeboTech.ATLib.PDU;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -52,6 +54,8 @@ namespace HeboTech.ATLib.Modems.SIMCOM
             return base.SendSmsAsync(phoneNumber, message, codingScheme, false);
         }
 
+       
+
         public override async Task<ModemResponse<List<SmsWithIndex>>> ListSmssAsync(SmsStatus smsStatus)
         {
             string command = $"AT+CMGL={(int)smsStatus}";
@@ -66,23 +70,36 @@ namespace HeboTech.ATLib.Modems.SIMCOM
 
                 for (int i = 0; i < response.Intermediates.Count; i += 2)
                 {
-                    string metaDataLine = response.Intermediates[i];
-                    string messageLine = response.Intermediates[i + 1];
-                    var match = Regex.Match(metaDataLine, @"\+CMGL:\s(?<index>\d+),(?<status>\d+),""?""?,(?<length>\d+)");
-                    if (match.Success)
+                    try
                     {
-                        int index = int.Parse(match.Groups["index"].Value);
-                        SmsStatus status = (SmsStatus)int.Parse(match.Groups["status"].Value);
-
-                        // Sent when AT+CSDH=1 is set
-                        int length = int.Parse(match.Groups["length"].Value);
-
-                        SmsDeliver sms = SmsDeliverDecoder.Decode(messageLine.ToByteArray());
-                        smss.Add(new SmsWithIndex(index, status, sms.SenderNumber, sms.Timestamp, sms.Message));
+                        Debug.WriteLine($"MetaData:{i} {response.Intermediates[i]}");
+                        string metaDataLine = response.Intermediates[i];
+                        string messageLine = response.Intermediates[i + 1];
+                        var match = Regex.Match(metaDataLine, @"\+CMGL:\s(?<index>\d+),(?<status>\d+),""?""?,(?<length>\d+)");
+                        if (match.Success)
+                        {
+                            int index = int.Parse(match.Groups["index"].Value);
+                            SmsStatus status = (SmsStatus)int.Parse(match.Groups["status"].Value);
+                            // Sent when AT+CSDH=1 is set
+                            int length = int.Parse(match.Groups["length"].Value);
+                            SmsDeliver sms = SmsDeliverDecoder.Decode(messageLine.ToByteArray());
+                            smss.Add(new SmsWithIndex(index, status, sms.SenderNumber, sms.Timestamp, sms.Message));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                       
+                        
                     }
                 }
+                return ModemResponse.IsResultSuccess(smss);
             }
-            return ModemResponse.IsResultSuccess(smss);
+            else
+            {
+                AtErrorParsers.TryGetError(response.FinalResponse, out Error error);
+                return ModemResponse.HasResultError<List<SmsWithIndex>>(error);
+
+            }
         }
         #endregion
 
